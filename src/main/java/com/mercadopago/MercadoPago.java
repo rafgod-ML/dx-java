@@ -33,6 +33,7 @@ public class MercadoPago {
         private static final String DEFAULT_BASE_URL = "https://api.mercadopago.com";
         private static final String CURRENT_VERSION = "1.2.0";
         private static final String PRODUCT_ID = "BC32A7VTRPP001U8NHJ0";
+        private static final String CLIENT_NAME = "MercadoPago-SDK-Java";
 
         private static final int DEFAULT_MAX_CONNECTIONS = 10;
         private static final int DEFAULT_CONNECTION_TIMEOUT_MS = 5000;
@@ -45,9 +46,6 @@ public class MercadoPago {
         private static volatile String accessToken = null;
         private static volatile String userToken = null;
         private static volatile String appId = null;
-        private static volatile String platformId = null;
-        private static volatile String corporationId = null;
-        private static volatile String integratorId = null;
         private static volatile String baseUrl = DEFAULT_BASE_URL;
 
         private static volatile int maxConnections = DEFAULT_MAX_CONNECTIONS;
@@ -126,39 +124,6 @@ public class MercadoPago {
         }
 
         /**
-         * Getter/Setter for PlatformId
-         */
-        public static String getPlatformId() {
-            return platformId;
-        }
-
-        public static void setPlatformId(String value) {
-            platformId = value;
-        }
-
-        /**
-         * Getter/Setter for CorporationId
-         */
-        public static String getCorporationId() {
-            return corporationId;
-        }
-
-        public static void setCorporationId(String value) {
-            corporationId = value;
-        }
-
-        /**
-         * Getter/Setter for IntegratorId
-         */
-        public static String getIntegratorId() {
-            return integratorId;
-        }
-
-        public static void setIntegratorId(String value) {
-            integratorId = value;
-        }
-
-        /**
          * Getter/Setter for BaseUrl
          * (FOR TESTING ONLY)
          */
@@ -181,6 +146,12 @@ public class MercadoPago {
          * @return Product ID
          */
         public static String getProductId() { return PRODUCT_ID; }
+
+         /**
+         * Get client name
+         * @return client name
+         */
+        public static String getClientName() { return CLIENT_NAME; }
 
         /**
          * Get the number of max simultaneous connections in the pool
@@ -294,9 +265,6 @@ public class MercadoPago {
             setClientId(getValueFromMap(configurationParams, "clientId"));
             setAccessToken(getValueFromMap(configurationParams, "accessToken"));
             setAppId(getValueFromMap(configurationParams, "appId"));
-            setPlatformId(getValueFromMap(configurationParams, "platformId"));
-            setCorporationId(getValueFromMap(configurationParams, "corporationId"));
-            setIntegratorId(getValueFromMap(configurationParams, "integratorId"));
 
             int maxConnections = getIntValueFromMap(configurationParams, "maxConnections");
             if (maxConnections > 0) {
@@ -410,9 +378,6 @@ public class MercadoPago {
         public static void setConfiguration(Properties properties) throws MPException {
 
             setAppId(getValueFromProperties(properties, "appId"));
-            setPlatformId(getValueFromProperties(properties, "platformId"));
-            setCorporationId(getValueFromProperties(properties, "corporationId"));
-            setIntegratorId(getValueFromProperties(properties, "integratorId"));
 
             if (StringUtils.isNotEmpty(getValueFromProperties(properties, "accessToken"))) {
                 setAccessToken(getValueFromProperties(properties, "accessToken"));
@@ -503,9 +468,6 @@ public class MercadoPago {
             clientId = null;
             accessToken = null;
             appId = null;
-            platformId = null;
-            corporationId = null;
-            integratorId = null;
             baseUrl = DEFAULT_BASE_URL;
             maxConnections = DEFAULT_MAX_CONNECTIONS;
             connectionTimeout = DEFAULT_CONNECTION_TIMEOUT_MS;

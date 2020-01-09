@@ -16,6 +16,7 @@ import com.mercadopago.core.annotations.rest.POST;
 import com.mercadopago.core.annotations.rest.PUT;
 import com.mercadopago.core.annotations.rest.PayloadType;
 import com.mercadopago.exceptions.MPException;
+import com.mercadopago.insight.Stats;
 import com.mercadopago.net.HttpMethod;
 import com.mercadopago.net.MPRestClient;
 import org.apache.commons.lang.StringUtils;
@@ -155,7 +156,7 @@ public abstract class MPBase {
      * @throws MPException
      */
     protected static <T extends MPBase> T processMethod(Class clazz, String methodName, Boolean useCache, MPRequestOptions requestOptions, String... params) throws MPException {
-        Map<String, String> mapParams = new HashMap<String, String>();
+        Map<String, String> mapParams = new HashMap<>();
         if (params != null) {
             for (int i = 1; i <= params.length; i++) {
                 mapParams.put("param" + i, params[i - 1]);
@@ -292,7 +293,7 @@ public abstract class MPBase {
      * @throws MPException
      */
     protected static MPResourceArray processMethodBulk(Class clazz, String methodName, Boolean useCache, MPRequestOptions requestOptions, String... params) throws MPException {
-        Map<String, String> mapParams = new HashMap<String, String>();
+        Map<String, String> mapParams = new HashMap<>();
         if (params != null) {
             for (int i = 1; i <= params.length; i++) {
                 mapParams.put("param" + i, params[i - 1]);
@@ -385,6 +386,7 @@ public abstract class MPBase {
                     payloadType,
                     payload,
                     requestOptions);
+           
 
             if (useCache) {
                 MPCache.addToCache(cacheKey, response);
@@ -662,7 +664,7 @@ public abstract class MPBase {
             throw new MPException("No rest method found");
         }
 
-        Map<String, Object> hashAnnotation = new HashMap<String, Object>();
+        Map<String, Object> hashAnnotation = new HashMap<>();
         for (Annotation annotation : element.getAnnotations()) {
             if (annotation instanceof DELETE) {
                 DELETE delete = (DELETE) annotation;
@@ -786,18 +788,5 @@ public abstract class MPBase {
 
     public void setMarketplaceAccessToken(String marketplaceAccessToken) {
         this.marketplaceAccessToken = marketplaceAccessToken;
-    }
-
-    protected void addTrackingHeaders(MPRequestOptions requestOptions) {
-        Map<String, String> customHeaders = requestOptions.getCustomHeaders();
-        if (MercadoPago.SDK.getPlatformId() != null && !MercadoPago.SDK.getPlatformId().trim().equals("") && !customHeaders.containsKey("x-platform-id")) {
-            customHeaders.put("x-platform-id", MercadoPago.SDK.getPlatformId());
-        }
-        if (MercadoPago.SDK.getCorporationId() != null && !MercadoPago.SDK.getCorporationId().trim().equals("") && !customHeaders.containsKey("x-corporation-id")) {
-            customHeaders.put("x-corporation-id", MercadoPago.SDK.getCorporationId());
-        }
-        if (MercadoPago.SDK.getIntegratorId() != null && !MercadoPago.SDK.getIntegratorId().trim().equals("") && !customHeaders.containsKey("x-integrator-id")) {
-            customHeaders.put("x-integrator-id", MercadoPago.SDK.getIntegratorId());
-        }
     }
 }

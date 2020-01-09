@@ -26,12 +26,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
@@ -44,9 +39,7 @@ import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.message.BasicStatusLine;
 import org.apache.http.protocol.HTTP;
-import org.apache.http.ssl.SSLContexts;
 
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,15 +48,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 /**
  * Mercado Pago MercadoPago
  * Simple Rest Client
  *
  * Created by Eduardo Paoletta on 11/11/16.
  */
-public class MPRestClient {
+public class MPRestClient{
 
     private static final int VALIDATE_INACTIVITY_INTERVAL_MS = 30000;
+    private static final int DEFAULT_KEEP_ALIVE_TIMEOUT_MS = 10000;
+    private static final String KEEP_ALIVE_TIMEOUT_PARAM_NAME = "timeout";
 
     private HttpClient httpClient;
     private HttpHost httpProxy = null;
@@ -120,7 +116,7 @@ public class MPRestClient {
     @Deprecated
     public MPApiResponse executeRequest(HttpMethod httpMethod, String uri, PayloadType payloadType, JsonObject payload, Collection<Header> colHeaders, int retries, int connectionTimeout, int socketTimeout)
             throws MPRestException {
-        Map<String, String> headers = new HashMap<String, String>();
+        Map<String, String> headers = new HashMap<>();
         if (colHeaders != null) {
             for (Header header : colHeaders) {
                 headers.put(header.getName(), header.getValue());
@@ -184,7 +180,7 @@ public class MPRestClient {
             }
             long endMillis = System.currentTimeMillis();
             long responseMillis = endMillis - startMillis;
-
+            
             return new MPApiResponse(httpMethod, request, payload, response, responseMillis);
 
         } catch (MPRestException restEx) {
@@ -198,7 +194,7 @@ public class MPRestClient {
         HttpEntity entity = normalizePayload(payloadType, payload);
         HttpRequestBase request = getRequestMethod(httpMethod, uri, entity);
 
-        Map<String, String> headers = new HashMap<String, String>();
+        Map<String, String> headers = new HashMap<>();
         headers.put(HTTP.USER_AGENT, String.format("MercadoPago Java SDK/%s", MercadoPago.SDK.getVersion()));
         headers.put("x-product-id", MercadoPago.SDK.getProductId());
         for (String headerName : requestOptions.getCustomHeaders().keySet()) {
@@ -235,23 +231,29 @@ public class MPRestClient {
      * @return a HttpClient
      */
     private HttpClient createHttpClient() {
-        SSLContext sslContext = SSLContexts.createDefault();
-        SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(sslContext,
-                new String[]{"TLSv1.1", "TLSv1.2"}, null, SSLConnectionSocketFactory.getDefaultHostnameVerifier());
-        Registry<ConnectionSocketFactory> registry = RegistryBuilder.<ConnectionSocketFactory>create()
-                .register("https", sslConnectionSocketFactory)
-                .build();
-
-        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager(registry);
+        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
         connectionManager.setMaxTotal(MercadoPago.SDK.getMaxConnections());
         connectionManager.setDefaultMaxPerRoute(MercadoPago.SDK.getMaxConnections());
         connectionManager.setValidateAfterInactivity(VALIDATE_INACTIVITY_INTERVAL_MS);
+
+        ConnectionKeepAliveStrategy keepAliveStrategy = (response, context) -> {
+            HeaderElementIterator it = new BasicHeaderElementIterator(response.headerIterator(HTTP.CONN_KEEP_ALIVE));
+            while (it.hasNext()) {
+                HeaderElement he = it.nextElement();
+                String param = he.getName();
+                String value = he.getValue();
+                if (value != null && param.equalsIgnoreCase(KEEP_ALIVE_TIMEOUT_PARAM_NAME)) {
+                    return Long.parseLong(value) * 1000;
+                }
+            }
+            return DEFAULT_KEEP_ALIVE_TIMEOUT_MS;
+        };
 
         DefaultHttpRequestRetryHandler retryHandler = new DefaultHttpRequestRetryHandler(MercadoPago.SDK.getRetries(), false);
 
         HttpClientBuilder httpClientBuilder = HttpClients.custom()
                 .setConnectionManager(connectionManager)
-                .setKeepAliveStrategy(new KeepAliveStrategy())
+                .setKeepAliveStrategy(keepAliveStrategy)
                 .setRetryHandler(retryHandler)
                 .disableCookieManagement()
                 .disableRedirectHandling();
@@ -273,7 +275,7 @@ public class MPRestClient {
             if (payloadType == PayloadType.JSON) {
                 StringEntity stringEntity;
                 try {
-                    stringEntity = new StringEntity(payload.toString(), "UTF-8");
+                    stringEntity = new StringEntity(payload.toString());
                 } catch(Exception ex) {
                     throw new MPRestException(ex);
                 }
@@ -281,7 +283,7 @@ public class MPRestClient {
 
             } else {
                 Map<String, Object> map = new Gson().fromJson(payload.toString(), new TypeToken<Map<String, Object>>(){}.getType());
-                List<NameValuePair> params = new ArrayList<NameValuePair>(2);
+                List<NameValuePair> params = new ArrayList<>(2);
                 for (Map.Entry<String, Object> entry : map.entrySet()) {
                     params.add(new BasicNameValuePair(entry.getKey(), entry.getValue().toString()));
                 }
